@@ -6,7 +6,7 @@ mkPulumiPackage rec {
   repo = "pulumi-aws";
   version = "6.2.1";
   rev = "v${version}";
-  hash = "sha256-ETTeJBqUnqbc5dhCmf/cGJl+9x6c2vbKEQWOfkiJ+ka=";
+  hash = "sha256-ETTeJBqUnqbc5dhCmf/cGJl+9x6c2vbKEQWOfkiJ+kI";
   vendorHash = "sha256-FDFQywWugEyh9fK1G+YfIw5bms4l5zLuqCY3yJPAQZa=";
   fetchSubmodules = true;
   cmdGen = "pulumi-tfgen-aws";
