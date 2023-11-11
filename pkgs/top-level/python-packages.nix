@@ -1573,6 +1573,8 @@ self: super: with self; {
     enablePython = true;
   });
 
+  bork = callPackage ../development/python-modules/bork { };
+
   boschshcpy = callPackage ../development/python-modules/boschshcpy { };
 
   bottombar = callPackage ../development/python-modules/bottombar { };
@@ -3787,6 +3789,8 @@ self: super: with self; {
 
   farama-notifications = callPackage ../development/python-modules/farama-notifications { };
 
+  farm-haystack = callPackage ../development/python-modules/farm-haystack { };
+
   fastai = callPackage ../development/python-modules/fastai { };
 
   fastapi = callPackage ../development/python-modules/fastapi { };
@@ -4156,7 +4160,9 @@ self: super: with self; {
 
   oelint-parser = callPackage ../development/python-modules/oelint-parser { };
 
-  openllm = callPackage ../development/python-modules/openllm { };
+  openllm = callPackage ../development/python-modules/openllm {
+    openai-triton = self.openai-triton-cuda;
+  };
 
   openllm-client = callPackage ../development/python-modules/openllm-client { };
 
@@ -5090,6 +5096,8 @@ self: super: with self; {
 
   htmllaundry = callPackage ../development/python-modules/htmllaundry { };
 
+  htmllistparse = callPackage ../development/python-modules/htmllistparse { };
+
   htmlmin = callPackage ../development/python-modules/htmlmin { };
 
   html-sanitizer = callPackage ../development/python-modules/html-sanitizer { };
@@ -5425,6 +5433,8 @@ self: super: with self; {
   iocextract = callPackage ../development/python-modules/iocextract { };
 
   ionhash = callPackage ../development/python-modules/ionhash { };
+
+  ionoscloud = callPackage ../development/python-modules/ionoscloud { };
 
   iopath = callPackage ../development/python-modules/iopath { };
 
@@ -6040,9 +6050,9 @@ self: super: with self; {
 
   layoutparser = callPackage ../development/python-modules/layoutparser { };
 
-  lazr_config = callPackage ../development/python-modules/lazr/config.nix { };
+  lazr-config = callPackage ../development/python-modules/lazr/config.nix { };
 
-  lazr_delegates = callPackage ../development/python-modules/lazr/delegates.nix { };
+  lazr-delegates = callPackage ../development/python-modules/lazr/delegates.nix { };
 
   lazr-restfulclient = callPackage ../development/python-modules/lazr-restfulclient { };
 
@@ -6138,6 +6148,10 @@ self: super: with self; {
   libfdt = toPythonModule (pkgs.dtc.override {
     inherit python;
     pythonSupport = true;
+  });
+
+  libfive = toPythonModule (pkgs.libfive.override {
+    inherit python;
   });
 
   libgpiod = callPackage ../development/python-modules/libgpiod {
@@ -6656,8 +6670,7 @@ self: super: with self; {
   maya = callPackage ../development/python-modules/maya { };
 
   mayavi = pkgs.libsForQt5.callPackage ../development/python-modules/mayavi {
-    inherit buildPythonPackage pythonOlder;
-    inherit (self) pyface pygments numpy packaging vtk traitsui envisage apptools pyqt5;
+    inherit (self) buildPythonPackage pythonOlder pythonAtLeast pyface pygments numpy packaging vtk traitsui envisage apptools pyqt5;
   };
 
   mbddns = callPackage ../development/python-modules/mbddns { };
@@ -7099,7 +7112,7 @@ self: super: with self; {
 
   multidict = callPackage ../development/python-modules/multidict { };
 
-  multi_key_dict = callPackage ../development/python-modules/multi_key_dict { };
+  multi-key-dict = callPackage ../development/python-modules/multi-key-dict { };
 
   multimethod = callPackage ../development/python-modules/multimethod { };
 
@@ -8423,12 +8436,24 @@ self: super: with self; {
 
   open-meteo = callPackage ../development/python-modules/open-meteo { };
 
-  openai-triton = callPackage ../development/python-modules/openai-triton { cudaPackages = pkgs.cudaPackages_12_0; };
+  openai-triton = callPackage ../development/python-modules/openai-triton {
+    llvm = pkgs.openai-triton-llvm;
+    cudaPackages = pkgs.cudaPackages_12_0;
+  };
+
+  openai-triton-cuda = self.openai-triton.override {
+    cudaSupport = true;
+  };
+
+  openai-triton-no-cuda = self.openai-triton.override {
+    cudaSupport = false;
+  };
 
   openai-triton-bin = callPackage ../development/python-modules/openai-triton/bin.nix { };
 
   openai-whisper = callPackage ../development/python-modules/openai-whisper {
     inherit (pkgs.config) cudaSupport;
+    openai-triton = self.openai-triton-cuda;
   };
 
   openant = callPackage ../development/python-modules/openant { };
@@ -10389,10 +10414,6 @@ self: super: with self; {
 
   pymacaroons = callPackage ../development/python-modules/pymacaroons { };
 
-  pymaging = callPackage ../development/python-modules/pymaging { };
-
-  pymaging_png = callPackage ../development/python-modules/pymaging_png { };
-
   pymailgunner = callPackage ../development/python-modules/pymailgunner { };
 
   pymanopt = callPackage ../development/python-modules/pymanopt { };
@@ -12014,7 +12035,7 @@ self: super: with self; {
 
   rangehttpserver = callPackage ../development/python-modules/rangehttpserver { };
 
-  rank_bm25 = callPackage ../development/python-modules/rank_bm25 { };
+  rank-bm25 = callPackage ../development/python-modules/rank-bm25 { };
 
   rapidfuzz = callPackage ../development/python-modules/rapidfuzz { };
 
@@ -13675,6 +13696,8 @@ self: super: with self; {
 
   telfhash = callPackage ../development/python-modules/telfhash { };
 
+  telegram-text = callPackage ../development/python-modules/telegram-text { };
+
   temescal = callPackage ../development/python-modules/temescal { };
 
   temperusb = callPackage ../development/python-modules/temperusb { };
@@ -14060,6 +14083,7 @@ self: super: with self; {
 
   torchWithCuda = self.torch.override {
     magma = pkgs.magma-cuda-static;
+    openai-triton = self.openai-triton-cuda;
     cudaSupport = true;
     rocmSupport = false;
   };
@@ -14070,6 +14094,7 @@ self: super: with self; {
 
   torchWithRocm = self.torch.override {
     magma = pkgs.magma-hip;
+    openai-triton = self.openai-triton-no-cuda;
     rocmSupport = true;
     cudaSupport = false;
   };
@@ -14112,7 +14137,7 @@ self: super: with self; {
 
   torpy = callPackage ../development/python-modules/torpy { };
 
-  torrent_parser = callPackage ../development/python-modules/torrent_parser { };
+  torrent-parser = callPackage ../development/python-modules/torrent-parser { };
 
   torrequest = callPackage ../development/python-modules/torrequest { };
 
@@ -15768,7 +15793,9 @@ self: super: with self; {
     inherit (pkgs) graphviz;
   };
 
-  xformers = callPackage ../development/python-modules/xformers { };
+  xformers = callPackage ../development/python-modules/xformers {
+    openai-triton = self.openai-triton-cuda;
+  };
 
   xgboost = callPackage ../development/python-modules/xgboost {
     inherit (pkgs) xgboost;
@@ -15975,6 +16002,8 @@ self: super: with self; {
   zc-buildout = callPackage ../development/python-modules/buildout { };
 
   zc_lockfile = callPackage ../development/python-modules/zc_lockfile { };
+
+  zcbor = callPackage ../development/python-modules/zcbor { };
 
   zconfig = callPackage ../development/python-modules/zconfig { };
 

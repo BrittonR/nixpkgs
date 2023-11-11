@@ -356,7 +356,10 @@ with pkgs;
 
   binbloom = callPackage ../tools/security/binbloom { };
 
-  bingo = callPackage ../development/tools/bingo { };
+  bingo = callPackage ../development/tools/bingo {
+    # See https://github.com/bwplotka/bingo/issues/143.
+    buildGoModule = buildGo120Module;
+  };
 
   bin2c = callPackage ../development/tools/bin2c { };
 
@@ -2506,6 +2509,8 @@ with pkgs;
 
   gst = callPackage ../applications/version-management/gst { };
 
+  guilt = callPackage ../applications/version-management/guilt { };
+
   gut = callPackage ../applications/version-management/gut { };
 
   hred = callPackage ../development/tools/hred { };
@@ -4469,7 +4474,10 @@ with pkgs;
 
   brltty = callPackage ../tools/misc/brltty { };
 
-  brook = callPackage ../tools/networking/brook { };
+  brook = callPackage ../tools/networking/brook {
+    # See https://hydra.nixos.org/build/239027853/nixlog/2.
+    buildGoModule = buildGo120Module;
+  };
 
   broot = callPackage ../tools/misc/broot {
     inherit (darwin.apple_sdk.frameworks) Security;
@@ -6027,8 +6035,8 @@ with pkgs;
   moar = callPackage ../tools/misc/moar { };
 
   mobilizon = callPackage ../servers/mobilizon {
-    elixir = elixir_1_14;
-    beamPackages = beamPackages.extend (self: super: { elixir = elixir_1_14; });
+    elixir = elixir_1_15;
+    beamPackages = beamPackages.extend (self: super: { elixir = elixir_1_15; });
     mobilizon-frontend = callPackage ../servers/mobilizon/frontend.nix { };
   };
 
@@ -9915,7 +9923,14 @@ with pkgs;
   ldc = callPackage ../development/compilers/ldc { };
 
   ligo =
-    let ocaml_p = ocaml-ng.ocamlPackages_4_14_janeStreet_0_15; in
+    let ocaml_p = ocaml-ng.ocamlPackages_4_14_janeStreet_0_15.overrideScope (self: super: {
+      zarith = super.zarith.overrideAttrs (o: {
+        src = fetchzip {
+          url = "https://github.com/ocaml/Zarith/archive/refs/tags/release-1.12.tar.gz";
+          hash = "sha256-SQegsMc1+UIod8XeJDE+H5q1huNDQI8CUh7IsHOoVMs=";
+        };
+      });
+    }); in
     callPackage ../development/compilers/ligo {
     coq = coq_8_13.override {
       customOCamlPackages = ocaml_p;
@@ -15851,10 +15866,8 @@ with pkgs;
   default-gcc-version =
     if (with stdenv.targetPlatform; isVc4 || libc == "relibc") then 6
     else 12;
-  inherit ({
-      gcc = pkgs.${"gcc${toString default-gcc-version}"};
-      gccFun = callPackage ../development/compilers/gcc;
-    }) gcc gccFun;
+  gcc = pkgs.${"gcc${toString default-gcc-version}"};
+  gccFun = callPackage ../development/compilers/gcc;
   gcc-unwrapped = gcc.cc;
 
   wrapNonDeterministicGcc = stdenv: ccWrapper:
@@ -15979,41 +15992,7 @@ with pkgs;
       extraPackages = [];
   };
 
-  # This expression will be pushed into pkgs/development/compilers/gcc/common
-  # once the top-level gcc/${version}/default.nix files are deduplicated.
-  inherit
-    (lib.listToAttrs (map (majorMinorVersion:
-      let atLeast = lib.versionAtLeast majorMinorVersion;
-          attrName = "gcc${lib.replaceStrings ["."] [""] majorMinorVersion}";
-          pkg = lowPrio (wrapCC (callPackage ../development/compilers/gcc/default.nix ({
-            inherit noSysDirs;
-            inherit majorMinorVersion;
-            reproducibleBuild = true;
-            profiledCompiler = false;
-            libcCross = if stdenv.targetPlatform != stdenv.buildPlatform then libcCross else null;
-            threadsCross = if stdenv.targetPlatform != stdenv.buildPlatform then threadsCrossFor majorMinorVersion else { };
-            isl = if       stdenv.isDarwin then null
-                  else if    atLeast "9"   then isl_0_20
-                  else if    atLeast "7"   then isl_0_17
-                  else if    atLeast "6"   then (if stdenv.targetPlatform.isRedox then isl_0_17 else isl_0_14)
-                  else if    atLeast "4.9" then isl_0_11
-                  else            /* "4.8" */   isl_0_14;
-          } // lib.optionalAttrs (majorMinorVersion == "4.8") {
-            texinfo = texinfo5; # doesn't validate since 6.1 -> 6.3 bump
-          } // lib.optionalAttrs (majorMinorVersion == "4.9") {
-            # Build fails on Darwin with clang
-            stdenv = if stdenv.isDarwin then gccStdenv else stdenv;
-          } // lib.optionalAttrs (!(atLeast "6")) {
-            cloog = if stdenv.isDarwin
-                    then null
-                    else if atLeast "4.9" then cloog_0_18_0
-                    else          /* 4.8 */    cloog;
-          } // lib.optionalAttrs (atLeast "6" && !(atLeast "9")) {
-            # gcc 10 is too strict to cross compile gcc <= 8
-            stdenv = if (stdenv.targetPlatform != stdenv.buildPlatform) && stdenv.cc.isGNU then gcc7Stdenv else stdenv;
-          })));
-      in lib.nameValuePair attrName pkg
-    ) [ "4.8" "4.9" "6" "7" "8" "9" "10" "11" "12" "13" ]))
+  inherit (callPackage ../development/compilers/gcc/all.nix { inherit noSysDirs; })
     gcc48 gcc49 gcc6 gcc7 gcc8 gcc9 gcc10 gcc11 gcc12 gcc13;
 
   gcc_latest = gcc13;
@@ -16274,7 +16253,7 @@ with pkgs;
   gforth = callPackage ../development/compilers/gforth { };
 
   gleam = callPackage ../development/compilers/gleam {
-    inherit (darwin.apple_sdk.frameworks) Security;
+    inherit (darwin.apple_sdk.frameworks) Security SystemConfiguration;
   };
 
   gmqcc = callPackage ../development/compilers/gmqcc { };
@@ -19691,8 +19670,6 @@ with pkgs;
     '';
   };
 
-  mommy = callPackage ../tools/misc/mommy { };
-
   moon = callPackage ../development/tools/build-managers/moon/default.nix { };
 
   msgpack-tools = callPackage ../development/tools/msgpack-tools { };
@@ -22896,7 +22873,9 @@ with pkgs;
 
   libfabric = callPackage ../development/libraries/libfabric { };
 
-  libfive = qt6Packages.callPackage ../development/libraries/libfive { };
+  libfive = qt6Packages.callPackage ../development/libraries/libfive {
+    python = python3;
+  };
 
   libfixposix = callPackage ../development/libraries/libfixposix { };
 
@@ -25027,6 +25006,7 @@ with pkgs;
     sdnotify-wrapper
     skalibs
     skalibs_2_10
+    tipidee
     utmps;
 
   kgt = callPackage ../development/tools/kgt {
@@ -26494,6 +26474,14 @@ with pkgs;
 
   home-assistant = callPackage ../servers/home-assistant { };
 
+  buildHomeAssistantComponent = callPackage ../servers/home-assistant/build-custom-component { };
+  home-assistant-custom-components = lib.recurseIntoAttrs
+    (callPackage ../servers/home-assistant/custom-components {
+      inherit (home-assistant.python.pkgs) callPackage;
+    });
+  home-assistant-custom-lovelace-modules = lib.recurseIntoAttrs
+    (callPackage ../servers/home-assistant/custom-lovelace-modules {});
+
   home-assistant-cli = callPackage ../servers/home-assistant/cli.nix { };
 
   home-assistant-component-tests = recurseIntoAttrs home-assistant.tests.components;
@@ -26604,9 +26592,7 @@ with pkgs;
 
   mackerel-agent = callPackage ../servers/monitoring/mackerel-agent { };
 
-  mailmanPackages = callPackage ../servers/mail/mailman {
-    python3 = python310;
-  };
+  mailmanPackages = callPackage ../servers/mail/mailman { };
   inherit (mailmanPackages) mailman mailman-hyperkitty;
   mailman-web = mailmanPackages.web;
 
@@ -28603,8 +28589,6 @@ with pkgs;
 
   pps-tools = callPackage ../os-specific/linux/pps-tools { };
 
-  prayer = callPackage ../servers/prayer { };
-
   procps = if stdenv.isLinux
     then callPackage ../os-specific/linux/procps-ng { }
     else unixtools.procps;
@@ -30010,6 +29994,10 @@ with pkgs;
 
   recursive = callPackage ../data/fonts/recursive { };
 
+  reversal-icon-theme = callPackage ../data/icons/reversal-icon-theme {
+    inherit (gnome) adwaita-icon-theme;
+  };
+
   rubik = callPackage ../data/fonts/rubik { };
 
   rhodium-libre = callPackage ../data/fonts/rhodium-libre { };
@@ -30992,6 +30980,8 @@ with pkgs;
   cosmic-panel = callPackage ../applications/window-managers/cosmic/panel { };
 
   cosmic-settings = callPackage ../applications/window-managers/cosmic/settings { };
+
+  cosmic-edit = callPackage ../applications/editors/cosmic-edit { };
 
   coursera-dl = callPackage ../applications/misc/coursera-dl { };
 
@@ -33957,6 +33947,7 @@ with pkgs;
   mpv-unwrapped = darwin.apple_sdk_11_0.callPackage ../applications/video/mpv {
     stdenv = if stdenv.isDarwin then swiftPackages.stdenv else stdenv;
     inherit lua;
+    inherit (darwin) sigtool;
   };
 
   shaka-packager = callPackage ../applications/video/shaka-packager { };
@@ -33969,7 +33960,7 @@ with pkgs;
     wlroots = wlroots_0_15;
   };
 
-  mpvScripts = import ../applications/video/mpv/scripts { inherit lib callPackage config; };
+  mpvScripts = callPackage ../applications/video/mpv/scripts { };
 
   open-in-mpv = callPackage ../applications/video/open-in-mpv { };
 
@@ -34060,8 +34051,6 @@ with pkgs;
   node-problem-detector = callPackage ../applications/networking/cluster/node-problem-detector { };
 
   ninjas2 = callPackage ../applications/audio/ninjas2 { };
-
-  nncp = darwin.apple_sdk_11_0.callPackage ../tools/misc/nncp { };
 
   nootka = qt5.callPackage ../applications/audio/nootka { };
 
@@ -34176,9 +34165,7 @@ with pkgs;
 
   pnglatex = with python3Packages; toPythonApplication pnglatex;
 
-  polybar = callPackage ../applications/misc/polybar { };
-
-  polybarFull = callPackage ../applications/misc/polybar {
+  polybarFull = polybar.override {
     alsaSupport = true;
     githubSupport = true;
     mpdSupport = true;
@@ -34904,7 +34891,9 @@ with pkgs;
     inherit (darwin) sigtool;
   };
 
-  qemu-utils = callPackage ../applications/virtualization/qemu/utils.nix { };
+  qemu-utils = qemu.override {
+    toolsOnly = true;
+  };
 
   canokey-qemu = callPackage ../applications/virtualization/qemu/canokey-qemu.nix { };
 
@@ -35896,7 +35885,9 @@ with pkgs;
 
   tofi = callPackage ../applications/misc/tofi { };
 
-  tokyo-night-gtk = callPackage ../data/themes/tokyo-night-gtk { };
+  tokyo-night-gtk = tokyo-night-gtk-variants.full;
+
+  tokyo-night-gtk-variants = recurseIntoAttrs (callPackage ../data/themes/tokyo-night-gtk { });
 
   topydo = callPackage ../applications/misc/topydo { };
 
@@ -35932,9 +35923,7 @@ with pkgs;
 
   toxiproxy = callPackage ../development/tools/toxiproxy { };
 
-  tqsl = callPackage ../applications/radio/tqsl {
-    openssl = openssl_1_1;
-  };
+  tqsl = callPackage ../applications/radio/tqsl { };
   trustedqsl = tqsl; # Alias added 2019-02-10
 
   transcode = callPackage ../applications/audio/transcode { };
@@ -37354,7 +37343,7 @@ with pkgs;
 
   heroic-unwrapped = callPackage ../games/heroic {
     # Match the version used by the upstream package.
-    electron = electron_24;
+    electron = electron_27;
   };
 
   heroic = callPackage ../games/heroic/fhsenv.nix { };
@@ -41287,7 +41276,7 @@ with pkgs;
   vazir-code-font = callPackage ../data/fonts/vazir-code-font { };
 
   vaultwarden = callPackage ../tools/security/vaultwarden {
-    inherit (darwin.apple_sdk.frameworks) Security CoreServices;
+    inherit (darwin.apple_sdk.frameworks) Security CoreServices SystemConfiguration;
   };
   vaultwarden-sqlite = vaultwarden;
   vaultwarden-mysql = vaultwarden.override { dbBackend = "mysql"; };
