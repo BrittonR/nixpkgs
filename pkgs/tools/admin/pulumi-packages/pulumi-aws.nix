@@ -4,10 +4,10 @@
 mkPulumiPackage rec {
   owner = "pulumi";
   repo = "pulumi-aws";
-  version = "6.8.0";
+  version = "6.2.1";
   rev = "v${version}";
-  hash = "sha256-8Lxro6Y4h+jG3eITicddTCfBbM1YyA/5ti+c7DMYB3c=";
-  vendorHash = "sha256-+FZC0rvgCgS4snJ0Ln4IcYjs1RKyR4XbMA2NiBX03K8=";
+  hash = "sha256-ETTeJBqUnqbc5dhCmf/cGJl+9x6c2vbKEQWOfkiJ+kI=";
+  vendorHash = "sha256-FDFQywWugEyh9fK1G+YfIw5bms4l5zLuqCY3yJPAQZY=";
   fetchSubmodules = true;
   cmdGen = "pulumi-tfgen-aws";
   cmdRes = "pulumi-resource-aws";
