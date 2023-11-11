@@ -24,6 +24,20 @@ let
         "-s"
         "-w"
       ] ++ extraLdflags;
+
+      # scripts/upstream.sh and Makefile have unwanted dependencies. Just apply
+      # patches manually if needed.
+      postPatch = ''
+        pushd ..
+        if [ -d upstream -a -d patches ]; then
+          chmod -R +w upstream
+          for patch in patches/*.patch; do
+            echo "Applying $patch"
+            patch -p1 -d upstream <"$patch"
+          done
+        fi
+        popd
+      '';
     } // args);
 
   mkPythonPackage =
@@ -33,10 +47,10 @@ let
     , version
     , ...
     }: python3Packages.callPackage
-      ({ buildPythonPackage, pythonOlder, parver, pip, pulumi, semver, setuptools }:
+      ({ buildPythonPackage, pythonOlder, parver, pulumi, semver }:
       buildPythonPackage rec {
         inherit pname meta src version;
-        format = "pyproject";
+        format = "setuptools";
 
         disabled = pythonOlder "3.7";
 
@@ -46,20 +60,13 @@ let
           parver
           pulumi
           semver
-          setuptools
         ];
 
         postPatch = ''
-          if [[ -e "pyproject.toml" ]]; then
-            sed -i \
-              -e 's/^  version = .*/  version = "${version}"/g' \
-              pyproject.toml
-          else
-            sed -i \
-               -e 's/^VERSION = .*/VERSION = "${version}"/g' \
-               -e 's/^PLUGIN_VERSION = .*/PLUGIN_VERSION = "${version}"/g' \
-               setup.py
-          fi
+          sed -i \
+            -e 's/^VERSION = .*/VERSION = "${version}"/g' \
+            -e 's/^PLUGIN_VERSION = .*/PLUGIN_VERSION = "${version}"/g' \
+            setup.py
         '';
 
         # Auto-generated; upstream does not have any tests.
@@ -67,7 +74,7 @@ let
         checkPhase = ''
           runHook preCheck
 
-          ${pip}/bin/pip show "${pname}" | grep "Version: ${version}" > /dev/null \
+          pip show "${pname}" | grep "Version: ${version}" > /dev/null \
             || (echo "ERROR: Version substitution seems to be broken"; exit 1)
 
           runHook postCheck
